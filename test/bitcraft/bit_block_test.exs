@@ -33,8 +33,8 @@ defmodule Bitcraft.BitBlockTest do
                b: 5,
                c: -10_000,
                tail: 120,
-               d: %DynamicSegment{size: 8, value: 128},
-               e: %DynamicSegment{size: 16, value: -536},
+               d: %DynamicSegment{size: 4, value: 2},
+               e: %DynamicSegment{size: 16, value: [1, -1, 2, -2]},
                leftover: "",
                extra: nil
              }

@@ -30,7 +30,7 @@ defmodule Bitcraft.MixProject do
       # Hex
       package: package(),
       description: """
-      Toolkit and DSL for defining and parsing bitstring and/or binary blocks.
+      Toolkit and DSL for encoding/decoding bitstring and binary protocols.
       """
     ]
   end

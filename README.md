@@ -1,5 +1,5 @@
 # Bitcraft
-### Toolkit and DSL for defining and parsing bitstring and/or binary blocks.
+### Toolkit and DSL for encoding/decoding bitstring and binary protocols.
 
 ![CI](https://github.com/cabol/bitcraft/workflows/CI/badge.svg)
 
@@ -57,6 +57,9 @@ iex> bits = MyBlock.encode(block)
 iex> MyBlock.decode(bits)
 %MyBlock{header: "begin", leftover: "", s1: 3, s2: -3, tail: "end"}
 ```
+
+> See `Bitcraft.BitBlock.defblock/3` and `Bitcraft.BitBlock.segment/3`
+  for more information.
 
 ### Working with dynamic blocks
 
@@ -196,6 +199,66 @@ iex> IpDatagram.decode(bits, :erlang.bit_size(bits), &IpDatagram.calc_size/3)
   tot_len: 100,
   ttl: 32,
   vsn: 4
+}
+```
+
+## Arrays
+
+Sometimes we may also want to parse a segment of bits as an array, for example,
+suppose we have a dynamic segment but we want to parse it as a list of integers
+of 16 bits, what variates is the amount of them (the length of the array).
+So, if the size of the segment is calculated as 64 bits, we expect an array
+of 4 integers of 16 bits.
+
+First of all, let us define a block with an array-type segment:
+
+```elixir
+defmodule TestBlock do
+  import Bitcraft.BitBlock
+
+  defblock "test-block" do
+    segment(:a, 8)
+    segment(:b, 8)
+    array(:list, type: :integer, element_size: 16, sign: :signed)
+  end
+
+  # Size resolver for dynamic segments invoked during the decoding
+  def calc_size(%__MODULE__{a: a, b: b}, :list, acc) do
+    {a + b, acc}
+  end
+end
+```
+
+As you may notice, the field `:list` is defined as array-type in the form:
+
+```elixir
+array(:list, type: :integer, element_size: 16, sign: :signed)
+```
+
+The first argument is the name of the segment, then we pass the options.
+The `type: :integer` defines the the type for the array elements, and
+`element_size: 16` defines that each element of the array must have
+16 bits size. The rest of the options are the same and apply to the
+array elements.
+
+> See `Bitcraft.BitBlock.array/2` and `Bitcraft.BitBlock.segment/3`.
+
+Now, let's try it out:
+
+```elixir
+iex> data = %TestBlock{
+...>   a: 32,
+...>   b: 32,
+...>   list: %Bitcraft.BitBlock.DynamicSegment{value: [1, 2, 3, 4], size: 64}
+}
+iex> encoded = TestBlock.encode(data)
+<<32, 32, 0, 1, 0, 2, 0, 3, 0, 4>>
+iex> TestBlock.decode(encoded, %{}, &TestBlock.calc_size/3)
+%TestBlock{
+  a: 32,
+  b: 32,
+  leftover: "",
+  list: %Bitcraft.BitBlock.DynamicSegment{size: 64, value: [1, 2, 3, 4]}
 }
 ```
 

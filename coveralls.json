@@ -6,6 +6,7 @@
 
   "skip_files": [
     "lib/bitcraft/helpers.ex",
+    "lib/bitcraft/bit_block.ex",
     "test/support/*"
   ]
 }

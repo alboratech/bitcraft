@@ -24,9 +24,10 @@ defmodule Bitcraft.Helpers do
     float_exprs = float_exprs(endian_opts)
     bin_exprs = bin_exprs()
     unicode_exprs = unicode_exprs(endian_opts)
+    array_exprs = array_exprs()
 
     {dec_exprs, enc_exprs} =
-      [int_exprs, float_exprs, bin_exprs, unicode_exprs]
+      [int_exprs, float_exprs, array_exprs, bin_exprs, unicode_exprs]
       |> List.flatten()
       |> Enum.unzip()
 
@@ -51,7 +52,7 @@ defmodule Bitcraft.Helpers do
       """
 
       enc = """
-      def encode_bits(var, size, :integer, :#{sign}, :#{endian}) do
+      def encode_segment(var, size, :integer, :#{sign}, :#{endian}) do
         <<var::#{sign}-#{endian}-integer-size(size)>>
       end
       """
@@ -70,7 +71,7 @@ defmodule Bitcraft.Helpers do
       """
 
       enc = """
-      def encode_bits(var, size, :float, _, :#{endian}) do
+      def encode_segment(var, size, :float, _, :#{endian}) do
         <<var::#{endian}-float-size(size)>>
       end
       """
@@ -89,7 +90,7 @@ defmodule Bitcraft.Helpers do
       """
 
       enc = """
-      def encode_bits(var, _, :#{type}, _, _) do
+      def encode_segment(var, _, :#{type}, _, _) do
         <<var::#{type}>>
       end
       """
@@ -126,7 +127,7 @@ defmodule Bitcraft.Helpers do
         end
 
       enc = """
-      def encode_bits(var, _, :#{type}, _, :#{endian}) do
+      def encode_segment(var, _, :#{type}, _, :#{endian}) do
         if is_integer(var) do
           <<var::#{type}-#{endian}>>
         else
@@ -137,5 +138,29 @@ defmodule Bitcraft.Helpers do
 
       {dec, enc}
     end
+  end
+
+  defp array_exprs do
+    dec = """
+    def decode_segment(bits, sz, %Bitcraft.BitBlock.Array{type: t, element_size: esz}, sign, endian) do
+      {array, rest} =
+        Enum.reduce(1..(div(sz, esz)), {[], bits}, fn _, {lst, bin} ->
+          {value, bin} = Bitcraft.decode_segment(bin, esz, t, sign, endian)
+          {[value | lst], bin}
+        end)
+
+      {Enum.reverse(array), rest}
+    end
+    """
+
+    enc = """
+    def encode_segment(array, _, %Bitcraft.BitBlock.Array{type: t, element_size: s}, sign, endian) do
+      for elem <- array, into: <<>> do
+        encode_segment(elem, s, t, sign, endian)
+      end
+    end
+    """
+
+    {dec, enc}
   end
 end

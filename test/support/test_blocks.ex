@@ -30,44 +30,43 @@ defmodule Bitcraft.TestBlocks do
 
     alias Bitcraft.BitBlock.DynamicSegment
 
-    defblock "test-block-1" do
+    @type t :: %__MODULE__{}
+
+    defblock "test-block-1", typespec: false do
       segment(:header, 4, type: :binary)
       segment(:a, 4, default: 1)
       segment(:b, 8, default: 1)
       segment(:c, 16, default: 1, sign: :signed)
       segment(:tail, 8, type: :utf8)
       segment(:d, :dynamic)
-      segment(:e, :dynamic, sign: :signed)
+      array(:e, type: :integer, element_size: 4, sign: :signed)
       segment(:extra)
     end
 
-    def callback(%__MODULE__{a: a, b: b}, :d, _acc) do
-      offset = Bitcraft.count_ones(a * b) * 2
-      {offset, %{offset: offset}}
+    def callback(%__MODULE__{a: a, b: b}, :d, acc) do
+      d_size = Bitcraft.count_ones(a * b)
+      {d_size, Map.put(acc, :nd, d_size)}
     end
 
-    def callback(%__MODULE__{}, :e, %{offset: offset} = acc) do
-      {offset * 2, acc}
+    def callback(%__MODULE__{}, :e, %{nd: nd} = acc) do
+      {nd * 4, acc}
     end
 
     def sample do
-      s1 = Bitcraft.count_ones(15) * 2
-      s2 = s1 * 2
-
       %__MODULE__{
         header: "test",
         a: 3,
         b: 5,
         c: -10_000,
+        tail: ?x,
         d: %DynamicSegment{
-          value: 128,
-          size: s1
+          value: 2,
+          size: 4
         },
         e: %DynamicSegment{
-          value: 65_000,
-          size: s2
-        },
-        tail: ?x
+          value: [1, -1, 2, -2],
+          size: 16
+        }
       }
     end
   end

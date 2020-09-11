@@ -143,20 +143,18 @@ defmodule Bitcraft.BitBlock do
 
   ## Working with typespecs
 
-  When defining a block with `defblock/3`, the struct is generated along with
-  the typespec `t/0` for it.
+  By default, the typespec `t/0` is generated but in the simplest form:
+
+      @type t :: %__MODULE__{}
+
+  If you want to provide a more accurate typespec for you block adding the
+  typespecs for each of the segments on it, you can set the option `:typespec`
+  to `false` when defining the block, like so:
+
+      defblock "my-block", typespec: false do
+        ...
+      end
   """
-
-  defmodule DynamicSegment do
-    @moduledoc """
-    Defines a dynamic segment within a bit-block.
-    """
-
-    @enforce_keys [:value, :size]
-    defstruct [:value, :size]
-
-    @type t :: %__MODULE__{value: term, size: non_neg_integer}
-  end
 
   import Record
 
@@ -222,12 +220,12 @@ defmodule Bitcraft.BitBlock do
       iex> bits = MyBlock.encode(block)
       iex> MyBlock.decode(bits)
   """
-  @callback decode(input :: bitstring, acc :: term, dynamic_size_resolver) :: t
+  @callback decode(input :: bitstring, acc :: term, dynamic_size_resolver) :: term
 
   ## API
 
   alias __MODULE__
-  alias __MODULE__.DynamicSegment
+  alias __MODULE__.{Array, DynamicSegment}
 
   @doc """
   Defines a bit-block struct with a name and segment definitions.
@@ -249,17 +247,12 @@ defmodule Bitcraft.BitBlock do
 
         segments = Module.get_attribute(__MODULE__, :block_segments, [])
 
-        {struct_segments, type_segments} =
+        struct_segments =
           Enum.reduce(
             segments ++ [block_segment(name: :leftover, default: <<>>)],
-            {[], []},
-            fn block_segment(
-                 name: name,
-                 type: type,
-                 default: default
-               ),
-               {acc1, acc2} ->
-              {[{name, default} | acc1], [{name, BitBlock.typespec(type)} | acc2]}
+            [],
+            fn block_segment(name: name, type: type, default: default), acc ->
+              [{name, default} | acc]
             end
           )
 
@@ -267,10 +260,10 @@ defmodule Bitcraft.BitBlock do
         @enforce_keys Keyword.get(opts, :enforce_keys, [])
         defstruct struct_segments
 
-        # define type
-        @type t :: %__MODULE__{
-                unquote_splicing(type_segments)
-              }
+        # maybe define default data type
+        if Keyword.get(opts, :typespec, true) == true do
+          @type t :: %__MODULE__{}
+        end
 
         # build encoding expressions for encode/decode functions
         {bit_expr, map_expr} = BitBlock.build_encoding_exprs(segments, "", "")
@@ -278,9 +271,7 @@ defmodule Bitcraft.BitBlock do
         ## Encoding Functions
 
         @doc false
-        def decode(bits, acc \\ nil, fun \\ nil)
-
-        def decode(unquote(bit_expr), _, nil) do
+        def decode(unquote(bit_expr)) do
           Map.put(unquote(map_expr), :__struct__, __MODULE__)
         end
 
@@ -381,7 +372,7 @@ defmodule Bitcraft.BitBlock do
       block_segment(name: name, size: :dynamic, type: type, sign: sign, endian: endian), acc ->
         case Map.fetch!(data, name) do
           %DynamicSegment{value: value, size: size} ->
-            value = Bitcraft.encode_bits(value, size, type, sign, endian)
+            value = Bitcraft.encode_segment(value, size, type, sign, endian)
             <<acc::bitstring, value::bitstring>>
 
           nil ->
@@ -397,7 +388,7 @@ defmodule Bitcraft.BitBlock do
         value =
           data
           |> Map.fetch!(name)
-          |> Bitcraft.encode_bits(size, type, sign, endian)
+          |> Bitcraft.encode_segment(size, type, sign, endian)
 
         <<acc::bitstring, value::bitstring>>
     end)
@@ -429,6 +420,42 @@ defmodule Bitcraft.BitBlock do
   defmacro segment(name, size \\ nil, opts \\ []) do
     quote do
       BitBlock.__segment__(__MODULE__, unquote(name), unquote(size), unquote(opts))
+    end
+  end
+
+  @doc """
+  Same as `segment/3`, but automatically generates a **dynamic**
+  segment with the type `Bitcraft.BitBlock.Array.t()`.
+
+  The size of the array-type segment in bits has to be calculated
+  dynamically during the decoding, and the length of the array will
+  be `segment_size/element_size`. This process is performs automatically
+  during the decoding. hence, it is important to set the right
+  `element_size` and also implement properly the callback to calculate
+  the segment size. See `Bitcraft.BitBlock.dynamic_size_resolver()`.
+
+  ## Options
+
+  Options are the same as `segment/3`, and additionally:
+
+    * `:element_size` - The size in bits of each array element.
+      Defaults to `8`.
+
+  **NOTE:** The `:type` is the same as `segment/3` BUT it applies to the
+  array element.
+  """
+  defmacro array(name, opts \\ []) do
+    {type, opts} = Keyword.pop(opts, :type, :integer)
+    {size, opts} = Keyword.pop(opts, :element_size, 8)
+    opts = [type: %Array{type: type, element_size: size}] ++ opts
+
+    quote do
+      BitBlock.__segment__(
+        __MODULE__,
+        unquote(name),
+        :dynamic,
+        unquote(Macro.escape(opts))
+      )
     end
   end
 
@@ -499,15 +526,6 @@ defmodule Bitcraft.BitBlock do
       when is_atom(size) do
     build_encoding_exprs(segments, bin, map <> "#{name}: #{inspect(default)}, ")
   end
-
-  @doc """
-  Helper to resolve the type for a block segment.
-  """
-  @spec typespec(seg_type | nil) :: atom
-  def typespec(nil), do: :integer
-  def typespec(type) when type in [:binary, :bytes, :utf8, :utf16, :utf32], do: :binary
-  def typespec(type) when type in [:bitstring, :bits], do: :bitstring
-  def typespec(type) when type in [:integer, :float], do: type
 
   ## Private
 
