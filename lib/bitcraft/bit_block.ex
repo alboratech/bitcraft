@@ -168,19 +168,8 @@ defmodule Bitcraft.BitBlock do
     default: nil
   )
 
-  @typedoc "Block's segment definition"
-  @type block_segment ::
-          record(:block_segment,
-            name: atom,
-            size: integer | :dynamic | nil,
-            type: atom,
-            sign: atom,
-            endian: atom,
-            default: term
-          )
-
-  @typedoc "Segment types"
-  @type seg_type ::
+  @typedoc "Basic Segment types"
+  @type base_seg_type ::
           :integer
           | :float
           | :bitstring
@@ -191,13 +180,27 @@ defmodule Bitcraft.BitBlock do
           | :utf16
           | :utf32
 
-  @typedoc "Resolver function for the size of dynamic segments."
-  @type dynamic_size_resolver ::
-          (struct :: map, seg_name :: atom, acc :: term ->
-             {size :: non_neg_integer, acc :: term})
+  @typedoc "Segment type"
+  @type segment_type :: base_seg_type | Bitcraft.BitBlock.Array.t()
+
+  @typedoc "Block's segment type definition"
+  @type block_segment ::
+          record(:block_segment,
+            name: atom,
+            size: integer | :dynamic | nil,
+            type: segment_type,
+            sign: atom,
+            endian: atom,
+            default: term
+          )
 
   @typedoc "Bitblock definition"
   @type t :: %{optional(atom) => any, __struct__: atom}
+
+  @typedoc "Resolver function for the size of dynamic segments."
+  @type dynamic_size_resolver ::
+          (t, seg_name :: atom, acc :: term ->
+             {size :: non_neg_integer, acc :: term})
 
   ## Callbacks
 
@@ -220,7 +223,7 @@ defmodule Bitcraft.BitBlock do
       iex> bits = MyBlock.encode(block)
       iex> MyBlock.decode(bits)
   """
-  @callback decode(input :: bitstring, acc :: term, dynamic_size_resolver) :: term
+  @callback decode(input :: bitstring, acc :: term, dynamic_size_resolver) :: t
 
   ## API
 
