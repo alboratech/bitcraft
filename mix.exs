@@ -1,6 +1,7 @@
 defmodule Bitcraft.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/alboratech/bitcraft"
   @version "0.1.0"
 
   def project do
@@ -9,6 +10,7 @@ defmodule Bitcraft.MixProject do
       version: @version,
       elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
+      aliases: aliases(),
       deps: deps(),
 
       # Docs
@@ -18,6 +20,7 @@ defmodule Bitcraft.MixProject do
       # Testing
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
+        check: :test,
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
@@ -42,24 +45,39 @@ defmodule Bitcraft.MixProject do
 
   defp deps do
     [
-      # Test
+      # Test & Code Analysis
       {:excoveralls, "~> 0.13", only: :test},
-
-      # Code Analysis
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.4", only: [:dev, :test]},
+      {:sobelow, "~> 0.10", only: [:dev, :test], runtime: false},
 
       # Docs
-      {:ex_doc, "~> 0.22", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.23", only: :dev, runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [
+      check: [
+        "compile --warnings-as-errors",
+        "format --check-formatted",
+        "credo --strict",
+        "coveralls.html",
+        "sobelow --exit --skip",
+        "dialyzer --format short"
+      ]
     ]
   end
 
   defp package do
     [
       name: :bitcraft,
-      maintainers: ["Carlos Bolanos"],
+      maintainers: [
+        "Carlos Bolanos (GH: cabol)",
+        "Albora Technologies"
+      ],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/cabol/bitcraft"}
+      links: %{"GitHub" => @source_url}
     ]
   end
 
@@ -68,13 +86,13 @@ defmodule Bitcraft.MixProject do
       main: "Bitcraft",
       source_ref: "v#{@version}",
       canonical: "http://hexdocs.pm/bitcraft",
-      source_url: "https://github.com/cabol/bitcraft"
+      source_url: @source_url
     ]
   end
 
   defp dialyzer do
     [
-      plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+      plt_file: {:no_warn, "priv/plts/" <> plt_file_name()},
       flags: [
         :unmatched_returns,
         :error_handling,
@@ -84,5 +102,9 @@ defmodule Bitcraft.MixProject do
         :no_return
       ]
     ]
+  end
+
+  defp plt_file_name do
+    "dialyzer-#{Mix.env()}-#{System.otp_release()}-#{System.version()}.plt"
   end
 end

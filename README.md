@@ -1,7 +1,11 @@
 # Bitcraft
-### Toolkit and DSL for encoding/decoding bitstring and binary protocols.
+> Toolkit and DSL for encoding/decoding bitstring and binary protocols.
 
-![CI](https://github.com/cabol/bitcraft/workflows/CI/badge.svg)
+![CI](https://github.com/alboratech/bitcraft/workflows/CI/badge.svg)
+[![Coverage Status](https://img.shields.io/coveralls/alboratech/bitcraft.svg)](https://coveralls.io/github/alboratech/bitcraft)
+[![Hex Version](https://img.shields.io/hexpm/v/bitcraft.svg)](https://hex.pm/packages/bitcraft)
+[![Docs](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/bitcraft)
+[![License](https://img.shields.io/hexpm/l/bitcraft.svg)](LICENSE)
 
 When working with binary protocols we usually have to implement encoding and
 decoding functions for the different type of messages the protocol supports.
@@ -266,25 +270,23 @@ iex> TestBlock.decode(encoded, %{}, &TestBlock.calc_size/3)
 
 Contributions to Bitcraft are very welcome and appreciated!
 
-Use the [issue tracker](https://github.com/cabol/bitcraft/issues) for bug reports
-or feature requests. Open a [pull request](https://github.com/cabol/bitcraft/pulls)
+Use the [issue tracker](https://github.com/alboratech/bitcraft/issues) for bug
+reports or feature requests. Open a
+[pull request](https://github.com/alboratech/bitcraft/pulls)
 when you are ready to contribute.
 
-When submitting a pull request you should not update the [CHANGELOG.md](CHANGELOG.md),
-and also make sure you test your changes thoroughly, include unit tests
+When submitting a pull request you should not update the
+[CHANGELOG.md](CHANGELOG.md), and also make sure you test
+your changes thoroughly, include unit tests
 alongside new or changed code.
 
-Before to submit a PR it is highly recommended to run:
-
- * `mix format` to format the code properly.
- * `MIX_ENV=test mix credo --strict` to find code style issues.
- * `mix coveralls.html && open cover/excoveralls.html` to run tests and check
-   out code coverage (expected 100%).
- * `MIX_ENV=test mix dialyzer` to run dialyzer for type checking; might take a
-   while on the first invocation.
+Before to submit a PR it is highly recommended to run `mix check` and ensure all
+checks run successfully.
 
 ## Copyright and License
 
 Copyright (c) 2020, Carlos Bolaños.
+
+Copyright (c) 2021, Albora Technologies Ltd.
 
 Bitcraft source code is licensed under the [MIT License](LICENSE).
