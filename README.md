@@ -1,5 +1,5 @@
 # Bitcraft
-> Toolkit and DSL for encoding/decoding bitstring and binary protocols.
+> A toolkit for bit-strings and DSL for binary protocols bit-blocks.
 
 ![CI](https://github.com/alboratech/bitcraft/workflows/CI/badge.svg)
 [![Coverage Status](https://img.shields.io/coveralls/alboratech/bitcraft.svg)](https://coveralls.io/github/alboratech/bitcraft)

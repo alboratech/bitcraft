@@ -1,6 +1,14 @@
 defmodule Bitcraft do
   @moduledoc """
-  Commons.
+  The following are the main Bitcraft components:
+
+    * `Bitcraft.BitBlock` - This is the main Bitcraft component. It provides
+      a DSL that allows to define bit-blocks with their segments (useful for
+      building binary protocols) and automatically injects encoding and decoding
+      functions for them.
+    * `Bitcraft` - This is a helper module that provides utility functions to
+      work with bit strings and binaries.
+
   """
 
   use Bitwise
