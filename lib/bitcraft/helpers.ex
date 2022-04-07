@@ -142,6 +142,10 @@ defmodule Bitcraft.Helpers do
 
   defp array_exprs do
     dec = """
+    def decode_segment(bits, 0, %Bitcraft.BitBlock.Array{}, _sign, _endian) do
+      {[], bits}
+    end
+
     def decode_segment(bits, sz, %Bitcraft.BitBlock.Array{type: t, element_size: esz}, sign, endian) do
       {array, rest} =
         Enum.reduce(1..(div(sz, esz)), {[], bits}, fn _, {lst, bin} ->

@@ -15,10 +15,10 @@ defmodule Bitcraft.BitBlock do
         import Bitcraft.BitBlock
 
         defblock "my-static-block" do
-          segment(:h, 5, type: :binary)
-          segment(:s1, 4, default: 1)
-          segment(:s2, 8, default: 1, sign: :signed)
-          segment(:t, 3, type: :binary)
+          segment :h, 5, type: :binary
+          segment :s1, 4, default: 1
+          segment :s2, 8, default: 1, sign: :signed
+          segment :t, 3, type: :binary
         end
       end
 
@@ -52,7 +52,7 @@ defmodule Bitcraft.BitBlock do
   For those variable blocks, we can define dynamic segments using the
   `segment/3` API:
 
-      segment(:var, :dynamic, type: :bits)
+      segment :var, :dynamic, type: :bits
 
   As you can see, for the size argument we are passing `:dynamic` atom.
   In this way, the segment is marked as dynamic and its size is resolved
@@ -67,20 +67,20 @@ defmodule Bitcraft.BitBlock do
         import Bitcraft.BitBlock
 
         defblock "IP-datagram" do
-          segment(:vsn, 4)
-          segment(:hlen, 4)
-          segment(:srvc_type, 8)
-          segment(:tot_len, 16)
-          segment(:id, 16)
-          segment(:flags, 3)
-          segment(:frag_off, 13)
-          segment(:ttl, 8)
-          segment(:proto, 8)
-          segment(:hdr_chksum, 16, type: :bits)
-          segment(:src_ip, 32, type: :bits)
-          segment(:dst_ip, 32, type: :bits)
-          segment(:opts, :dynamic, type: :bits)
-          segment(:data, :dynamic, type: :bits)
+          segment :vsn, 4
+          segment :hlen, 4
+          segment :srvc_type, 8
+          segment :tot_len, 16
+          segment :id, 16
+          segment :flags, 3
+          segment :frag_off, 13
+          segment :ttl, 8
+          segment :proto, 8
+          segment :hdr_chksum, 16, type: :bits
+          segment :src_ip, 32, type: :bits
+          segment :dst_ip, 32, type: :bits
+          segment :opts, :dynamic, type: :bits
+          segment :data, :dynamic, type: :bits
         end
 
         # Size resolver for dynamic segments invoked during the decoding
@@ -154,6 +154,7 @@ defmodule Bitcraft.BitBlock do
       defblock "my-block", typespec: false do
         ...
       end
+
   """
 
   import Record
@@ -265,6 +266,7 @@ defmodule Bitcraft.BitBlock do
 
         # maybe define default data type
         if Keyword.get(opts, :typespec, true) == true do
+          @typedoc "#{__MODULE__} type"
           @type t :: %__MODULE__{}
         end
 
@@ -275,11 +277,12 @@ defmodule Bitcraft.BitBlock do
 
         @doc false
         def decode(unquote(bit_expr)) do
-          Map.put(unquote(map_expr), :__struct__, __MODULE__)
+          struct(__MODULE__, unquote(map_expr))
         end
 
         def decode(unquote(bit_expr), acc_in, fun) when is_function(fun, 3) do
-          struct = Map.put(unquote(map_expr), :__struct__, __MODULE__)
+          struct = struct(__MODULE__, unquote(map_expr))
+
           BitBlock.decode_segments(@dynamic_segments, struct, acc_in, fun)
         end
 
@@ -376,6 +379,7 @@ defmodule Bitcraft.BitBlock do
         case Map.fetch!(data, name) do
           %DynamicSegment{value: value, size: size} ->
             value = Bitcraft.encode_segment(value, size, type, sign, endian)
+
             <<acc::bitstring, value::bitstring>>
 
           nil ->
@@ -419,6 +423,7 @@ defmodule Bitcraft.BitBlock do
       The default value is calculated at compilation time, so don't use
       expressions for generating values dynamically as they would then
       be the same for all records. Defaults to `nil`.
+
   """
   defmacro segment(name, size \\ nil, opts \\ []) do
     quote do
@@ -479,10 +484,12 @@ defmodule Bitcraft.BitBlock do
 
     if size == :dynamic do
       dynamic_segments = Module.get_attribute(mod, :dynamic_segments, [])
+
       Module.put_attribute(mod, :dynamic_segments, dynamic_segments ++ [segment])
     end
 
     block_segments = Module.get_attribute(mod, :block_segments, [])
+
     Module.put_attribute(mod, :block_segments, block_segments ++ [segment])
   end
 
@@ -495,19 +502,8 @@ defmodule Bitcraft.BitBlock do
   @spec build_encoding_exprs([block_segment], String.t(), String.t()) ::
           {bin_expr_ast :: term, map_expr_ast :: term}
   def build_encoding_exprs([], bin, map) do
-    bin_expr =
-      "<<"
-      |> Kernel.<>(bin)
-      |> Kernel.<>("leftover::bitstring")
-      |> Kernel.<>(">>")
-      |> Code.string_to_quoted!()
-
-    map_expr =
-      "%{"
-      |> Kernel.<>(map)
-      |> Kernel.<>("leftover: leftover")
-      |> Kernel.<>("}")
-      |> Code.string_to_quoted!()
+    bin_expr = Code.string_to_quoted!("<<#{bin}leftover::bitstring>>")
+    map_expr = Code.string_to_quoted!("%{#{map}leftover: leftover}")
 
     {bin_expr, map_expr}
   end

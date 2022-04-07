@@ -6,11 +6,11 @@ defmodule Bitcraft.TestBlocks do
     import Bitcraft.BitBlock
 
     defblock "test-block-1" do
-      segment(:header, 5, type: :binary)
-      segment(:a, 4, default: 1)
-      segment(:b, 8, default: 1)
-      segment(:c, 16, default: 1, sign: :signed)
-      segment(:tail, 3, type: :binary)
+      segment :header, 5, type: :binary
+      segment :a, 4, default: 1
+      segment :b, 8, default: 1
+      segment :c, 16, default: 1, sign: :signed
+      segment :tail, 3, type: :binary
     end
 
     def sample do
@@ -33,18 +33,19 @@ defmodule Bitcraft.TestBlocks do
     @type t :: %__MODULE__{}
 
     defblock "test-block-1", typespec: false do
-      segment(:header, 4, type: :binary)
-      segment(:a, 4, default: 1)
-      segment(:b, 8, default: 1)
-      segment(:c, 16, default: 1, sign: :signed)
-      segment(:tail, 8, type: :utf8)
-      segment(:d, :dynamic)
-      array(:e, type: :integer, element_size: 4, sign: :signed)
-      segment(:extra)
+      segment :header, 4, type: :binary
+      segment :a, 4, default: 1
+      segment :b, 8, default: 1
+      segment :c, 16, default: 1, sign: :signed
+      segment :tail, 8, type: :utf8
+      segment :d, :dynamic
+      array :e, type: :integer, element_size: 4, sign: :signed
+      segment :extra
     end
 
     def callback(%__MODULE__{a: a, b: b}, :d, acc) do
       d_size = Bitcraft.count_ones(a * b)
+
       {d_size, Map.put(acc, :nd, d_size)}
     end
 
@@ -78,30 +79,32 @@ defmodule Bitcraft.TestBlocks do
     alias Bitcraft.BitBlock.DynamicSegment
 
     defblock "IP-datagram" do
-      segment(:vsn, 4)
-      segment(:hlen, 4)
-      segment(:srvc_type, 8)
-      segment(:tot_len, 16)
-      segment(:id, 16)
-      segment(:flags, 3)
-      segment(:frag_off, 13)
-      segment(:ttl, 8)
-      segment(:proto, 8)
-      segment(:hdr_chksum, 16, type: :bits)
-      segment(:src_ip, 32, type: :bits)
-      segment(:dst_ip, 32, type: :bits)
-      segment(:opts, :dynamic, type: :bits)
-      segment(:data, :dynamic, type: :bits)
+      segment :vsn, 4
+      segment :hlen, 4
+      segment :srvc_type, 8
+      segment :tot_len, 16
+      segment :id, 16
+      segment :flags, 3
+      segment :frag_off, 13
+      segment :ttl, 8
+      segment :proto, 8
+      segment :hdr_chksum, 16, type: :bits
+      segment :src_ip, 32, type: :bits
+      segment :dst_ip, 32, type: :bits
+      segment :opts, :dynamic, type: :bits
+      segment :data, :dynamic, type: :bits
     end
 
     def callback(%__MODULE__{hlen: hlen}, :opts, dgram_s)
         when hlen >= 5 and 4 * hlen <= dgram_s do
       opts_s = 4 * (hlen - 5)
+
       {opts_s * 8, dgram_s}
     end
 
     def callback(%__MODULE__{leftover: leftover}, :data, dgram_s) do
       data_s = :erlang.bit_size(leftover)
+
       {data_s, dgram_s}
     end
 

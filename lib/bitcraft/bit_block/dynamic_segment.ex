@@ -6,5 +6,8 @@ defmodule Bitcraft.BitBlock.DynamicSegment do
   @enforce_keys [:value, :size]
   defstruct [:value, :size]
 
+  @typedoc """
+  BitBlock DynamicSegment type.
+  """
   @type t :: %__MODULE__{value: term, size: non_neg_integer}
 end

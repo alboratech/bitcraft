@@ -73,6 +73,7 @@ defmodule Bitcraft do
       ...>   sign: :signed
       ...> )
       <<30, 3::size(4)>>
+
   """
   @spec encode_segment(codable_segment_type, Keyword.t()) :: bitstring
   def encode_segment(input, opts \\ []) do
@@ -149,6 +150,7 @@ defmodule Bitcraft do
       ...>   sign: :signed
       ...> )
       {[3.3, -7.7, 9.9], ""}
+
   """
   @spec decode_segment(bitstring, Keyword.t()) :: {codable_segment_type, bitstring}
   def decode_segment(input, opts \\ []) do
@@ -167,9 +169,9 @@ defmodule Bitcraft do
 
       iex> Bitcraft.count_ones(15)
       4
-
       iex> Bitcraft.count_ones(255)
       8
+
   """
   @spec count_ones(integer) :: integer
   def count_ones(integer) when is_integer(integer) do

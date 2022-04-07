@@ -43,10 +43,10 @@ defmodule MyBlock do
   import Bitcraft.BitBlock
 
   defblock "my-block" do
-    segment(:header, 5, type: :binary)
-    segment(:s1, 4, default: 1)
-    segment(:s2, 8, default: 1, sign: :signed)
-    segment(:tail, 3, type: :binary)
+    segment :header, 5, type: :binary
+    segment :s1, 4, default: 1
+    segment :s2, 8, default: 1, sign: :signed
+    segment :tail, 3, type: :binary
   end
 end
 ```
@@ -74,31 +74,33 @@ defmodule IpDatagram do
   import Bitcraft.BitBlock
 
   defblock "IP-datagram" do
-    segment(:vsn, 4)
-    segment(:hlen, 4)
-    segment(:srvc_type, 8)
-    segment(:tot_len, 16)
-    segment(:id, 16)
-    segment(:flags, 3)
-    segment(:frag_off, 13)
-    segment(:ttl, 8)
-    segment(:proto, 8)
-    segment(:hdr_chksum, 16, type: :bits)
-    segment(:src_ip, 32, type: :bits)
-    segment(:dst_ip, 32, type: :bits)
-    segment(:opts, :dynamic, type: :bits)
-    segment(:data, :dynamic, type: :bits)
+    segment :vsn, 4
+    segment :hlen, 4
+    segment :srvc_type, 8
+    segment :tot_len, 16
+    segment :id, 16
+    segment :flags, 3
+    segment :frag_off, 13
+    segment :ttl, 8
+    segment :proto, 8
+    segment :hdr_chksum, 16, type: :bits
+    segment :src_ip, 32, type: :bits
+    segment :dst_ip, 32, type: :bits
+    segment :opts, :dynamic, type: :bits
+    segment :data, :dynamic, type: :bits
   end
 
   # Size resolver for dynamic segments invoked during the decoding
   def calc_size(%__MODULE__{hlen: hlen}, :opts, dgram_s)
       when hlen >= 5 and 4 * hlen <= dgram_s do
     opts_s = 4 * (hlen - 5)
+
     {opts_s * 8, dgram_s}
   end
 
   def calc_size(%__MODULE__{leftover: leftover}, :data, dgram_s) do
     data_s = :erlang.bit_size(leftover)
+
     {data_s, dgram_s}
   end
 end
@@ -221,9 +223,9 @@ defmodule TestBlock do
   import Bitcraft.BitBlock
 
   defblock "test-block" do
-    segment(:a, 8)
-    segment(:b, 8)
-    array(:list, type: :integer, element_size: 16, sign: :signed)
+    segment :a, 8
+    segment :b, 8
+    array :list, type: :integer, element_size: 16, sign: :signed
   end
 
   # Size resolver for dynamic segments invoked during the decoding
@@ -236,7 +238,7 @@ end
 As you may notice, the field `:list` is defined as array-type in the form:
 
 ```elixir
-array(:list, type: :integer, element_size: 16, sign: :signed)
+array :list, type: :integer, element_size: 16, sign: :signed
 ```
 
 The first argument is the name of the segment, then we pass the options.
